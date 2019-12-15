@@ -1,0 +1,181 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    creationTimestamp: 2019-12-15T03:04:33Z
+    generation: 3
+    labels:
+      app: mongodb
+      chart: mongodb-1.0.0
+      heritage: Tiller
+      release: mongodb
+    name: mongodb-replicaset
+    namespace: default
+    resourceVersion: "2888"
+    selfLink: /apis/apps/v1/namespaces/default/statefulsets/mongodb-replicaset
+    uid: 9e665b7d-1ee7-11ea-885b-fa163e56c07c
+  spec:
+    podManagementPolicy: OrderedReady
+    replicas: 3
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: mongodb-replicaset
+        failure-domain.beta.kubernetes.io/region: cn-south-1
+        failure-domain.beta.kubernetes.io/zone: cn-south-1a
+        release: mongodb
+    serviceName: mongodb-replicaset
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: mongodb-replicaset
+          failure-domain.beta.kubernetes.io/region: cn-south-1
+          failure-domain.beta.kubernetes.io/zone: cn-south-1a
+          release: mongodb
+      spec:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                  - 192.168.0.152
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - mongodb-replicaset
+              topologyKey: kubernetes.io/hostname
+        containers:
+        - command:
+          - /opt/rancher/start-mongodb.sh
+          env:
+          - name: SERVICENAME
+            value: mongodb-replicaset.default.svc.cluster.local
+          - name: RSNAME
+            value: rs0
+          - name: REPLICAS
+            value: "3"
+          - name: RELEASE_NAME
+            value: mongodb
+          - name: SERVICE_EXPOSE
+            value: "false"
+          image: 100.125.16.65:20202/hwofficial/mongo:3.4
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 27017
+            timeoutSeconds: 10
+          name: mongodb-member
+          ports:
+          - containerPort: 27017
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - mongo
+              - --eval
+              - '''printjson(db.serverStatus())'''
+            failureThreshold: 3
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /opt/rancher/
+            name: utility
+          - mountPath: /data/db
+            name: datadir
+          - mountPath: /etc/config
+            name: config
+        dnsConfig:
+          options:
+          - name: single-request-reopen
+        dnsPolicy: ClusterFirst
+        initContainers:
+        - command:
+          - /bin/sh
+          - -c
+          - cp /start-mongodb.sh /opt/rancher/
+          image: 100.125.16.65:20202/hwofficial/mongodb-k8s-config:dev
+          imagePullPolicy: IfNotPresent
+          name: mongo-init
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /opt/rancher/
+            name: utility
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: mongodb-config
+          name: config
+        - emptyDir: {}
+          name: utility
+        - emptyDir: {}
+          name: datadir
+    updateStrategy:
+      type: OnDelete
+  status:
+    collisionCount: 0
+    currentReplicas: 3
+    currentRevision: mongodb-replicaset-54dd6d47cb
+    observedGeneration: 3
+    readyReplicas: 3
+    replicas: 3
+    updateRevision: mongodb-replicaset-79c59bd8cf
+----
+
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mongodb-replicaset
+    expose: "true"
+    release: mongodb
+  name: mongodb-replicaset
+spec:
+  ports:
+  - name: mongodb
+    port: 27017
+    protocol: TCP
+    targetPort: 27017
+  selector:
+    app: mongodb-replicaset
+    release: mongodb
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
