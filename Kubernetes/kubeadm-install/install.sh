@@ -17,7 +17,7 @@ cat << EOF
 OPTION:
    1      install_master
    2      install_node
-   0      install_node
+   0      exit
 EOF
 }
 usage
