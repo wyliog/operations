@@ -99,7 +99,7 @@ main(){
   echo "Your kubeconfig file is ${USER}.kubeconfig"
 }
 
-while getopts “h:a:u:n:” OPTION
+while getopts "h:a:u:n:" OPTION
 do
   case $OPTION in
     h)
